@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laturivalitsin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ef; --surface: #fff; --surface2: #f0ede8;
+    --border: #e2ddd7; --text: #1a1814; --muted: #7a756d;
+    --accent: #2d5a3d; --accent-light: #e8f2eb;
+    --radius: 14px; --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+  .app { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .header { margin-bottom: 40px; }
+  .eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .header h1 { font-size: 34px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.15; }
+  .header h1 span { font-weight: 600; color: var(--accent); }
+  .header p { margin-top: 10px; font-size: 15px; color: var(--muted); max-width: 440px; line-height: 1.6; }
+
+  /* Status */
+  .status { display:none; align-items:center; gap:10px; padding:14px 18px; border-radius:10px; margin-bottom:28px; font-size:14px; }
+  .status.loading { display:flex; background:#e8f0f8; color:#185fa5; }
+  .status.error   { display:flex; background:#fceaea; color:#a32d2d; flex-direction:column; align-items:flex-start; gap:6px; }
+  .status.success { display:flex; background:var(--accent-light); color:var(--accent); }
+  .spinner { width:16px; height:16px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .retry-btn { margin-top:4px; padding:6px 14px; background:#a32d2d; color:#fff; border:none; border-radius:100px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; }
+  .cache-info { font-size:11px; opacity:.7; margin-left:auto; }
+
+  /* Steps */
+  .steps { display:flex; align-items:center; margin-bottom:28px; }
+  .step { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); transition:color .2s; }
+  .step.active { color:var(--text); }
+  .step.done   { color:var(--accent); }
+  .step-num { width:26px; height:26px; border-radius:50%; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; background:var(--surface); transition:all .2s; }
+  .step.active .step-num { background:var(--text); border-color:var(--text); color:#fff; }
+  .step.done   .step-num { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .step-divider { width:32px; height:1px; background:var(--border); margin:0 4px; }
+
+  /* Search */
+  .search-wrap { position:relative; margin-bottom:20px; }
+  .search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+  #search { width:100%; padding:13px 16px 13px 46px; font-family:'DM Sans',sans-serif; font-size:15px; border:1.5px solid var(--border); border-radius:var(--radius); background:var(--surface); color:var(--text); outline:none; transition:border-color .2s,box-shadow .2s; }
+  #search:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(45,90,61,.1); }
+  #search::placeholder { color:var(--muted); }
+
+  /* Brands */
+  .brand-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+  .brand-tab { padding:7px 16px; border-radius:100px; border:1.5px solid var(--border); background:var(--surface); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .15s; }
+  .brand-tab:hover { border-color:var(--text); color:var(--text); }
+  .brand-tab.active { background:var(--text); border-color:var(--text); color:#fff; }
+
+  /* Phone grid */
+  .phone-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:12px; margin-bottom:40px; }
+  .phone-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:18px 16px; cursor:pointer; transition:all .15s; position:relative; overflow:hidden; }
+  .phone-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow); }
+  .phone-card.selected { border-color:var(--accent); background:var(--accent-light); box-shadow:0 0 0 3px rgba(45,90,61,.15); }
+  .phone-brand { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .phone-name  { font-size:14px; font-weight:500; color:var(--text); line-height:1.3; }
+  .phone-badge { display:inline-flex; align-items:center; margin-top:10px; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+  .b-usbc           { background:#e8f0f8; color:#3b6ea8; }
+  .b-lightning      { background:#fdf3e3; color:#c8882a; }
+  .b-microusb       { background:#f3eef8; color:#7a5c9e; }
+  .b-langatonlataus { background:var(--accent-light); color:var(--accent); }
+  .b-magsafe        { background:var(--accent-light); color:var(--accent); }
+  .b-unknown        { background:var(--surface2); color:var(--muted); }
+  .check-mark { position:absolute; top:12px; right:12px; width:20px; height:20px; background:var(--accent); border-radius:50%; display:none; align-items:center; justify-content:center; }
+  .phone-card.selected .check-mark { display:flex; }
+  .empty-state { text-align:center; padding:48px 24px; color:var(--muted); font-size:14px; grid-column:1/-1; }
+
+  /* Result */
+  .result { display:none; margin-top:8px; }
+  .result.visible { display:block; }
+  .result-header { display:flex; align-items:center; gap:14px; margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+  .result-header h3 { font-size:18px; font-weight:500; }
+  .result-header p  { font-size:13px; color:var(--muted); margin-top:3px; }
+  .charger-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+  .charger-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius); padding:22px 20px; text-decoration:none; color:var(--text); display:block; transition:all .15s; position:relative; }
+  .charger-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow); }
+  .charger-card::after { content:'→'; position:absolute; right:20px; top:50%; transform:translateY(-50%); font-size:18px; color:var(--border); transition:all .15s; }
+  .charger-card:hover::after { color:var(--accent); right:16px; }
+  .charger-tag   { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+  .charger-title { font-size:15px; font-weight:500; line-height:1.3; margin-bottom:6px; padding-right:28px; }
+  .charger-desc  { font-size:13px; color:var(--muted); line-height:1.5; padding-right:28px; }
+  .charger-hl    { display:inline-block; margin-top:12px; padding:4px 10px; background:var(--accent-light); color:var(--accent); font-size:11px; font-weight:500; border-radius:4px; }
+  .reset-btn { display:inline-flex; align-items:center; gap:6px; margin-top:28px; padding:10px 20px; background:transparent; border:1.5px solid var(--border); border-radius:100px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .15s; }
+  .reset-btn:hover { border-color:var(--text); color:var(--text); }
+
+  @media (max-width:600px) {
+    .header h1 { font-size:26px; }
+    .phone-grid { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
+    .charger-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="eyebrow">Laturivalitsin</div>
+    <h1>Löydä <span>oikea laturi</span><br>puhelimellesi</h1>
+    <p>Valitse puhelinmallisi — näytämme sopivat laturit suoraan kaupastamme.</p>
+  </div>
+
+  <div class="status" id="status">
+    <div class="spinner" id="spinner"></div>
+    <span id="statusMsg"></span>
+    <span class="cache-info" id="cacheInfo"></span>
+  </div>
+
+  <div class="steps" id="steps" style="display:none">
+    <div class="step active" id="s1"><div class="step-num">1</div><span>Valitse puhelin</span></div>
+    <div class="step-divider"></div>
+    <div class="step" id="s2"><div class="step-num">2</div><span>Katso suositukset</span></div>
+  </div>
+
+  <div class="search-wrap" id="searchWrap" style="display:none">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search" placeholder="Hae puhelinmallia, esim. iPhone 15...">
+  </div>
+
+  <div class="brand-tabs" id="brandTabs"></div>
+  <div class="phone-grid"  id="phoneGrid"></div>
+
+  <div class="result" id="result">
+    <div class="result-header">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      <div><h3 id="rName">—</h3><p id="rType">—</p></div>
+    </div>
+    <div class="charger-grid" id="chargerGrid"></div>
+    <button class="reset-btn" onclick="resetPick()">← Valitse toinen puhelin</button>
+  </div>
+
+</div>
+<script>
+// ─── ASETUKSET ────────────────────────────────────────────────────────────────
+// Vaihda tähän Railway-palvelusi osoite kun se on pystytetty
+const PROXY_URL = 'https://RAILWAY-OSOITTEESI.up.railway.app/proxy.php';
+
+// ─── LATURIKATALOGI ───────────────────────────────────────────────────────────
+// Päivitä url-kentät omiksi MyCashflow-laturituoteryhmälinkeiksi
+const CAT = {
+  usbc: {
+    label:'USB-C', color:'#3b6ea8',
+    chargers:[
+      { title:'USB-C pikalaturi',      desc:'Nopea lataus 20–65W. Sopii kaikkiin USB-C-puhelimiin.', hl:'Suosituin valinta', url:'https://kauppasi.mycashflow.fi/tuoteryhmat/usbc-laturit' },
+      { title:'USB-C kaapeli',         desc:'Laadukas USB-C–USB-C -kaapeli, 1 m tai 2 m.',           hl:null,               url:'https://kauppasi.mycashflow.fi/tuoteryhmat/usbc-kaapelit' },
+      { title:'Langaton laturi (Qi2)', desc:'Langaton lataus Qi2-yhteensopiviin laitteisiin.',       hl:null,               url:'https://kauppasi.mycashflow.fi/tuoteryhmat/langattomat-laturit' }
+    ]
+  },
+  lightning: {
+    label:'Lightning', color:'#c8882a',
+    chargers:[
+      { title:'Lightning-laturi',  desc:'Apple Lightning. Sopii iPhone 14 ja vanhemmille.', hl:'Apple-laitteet', url:'https://kauppasi.mycashflow.fi/tuoteryhmat/lightning-laturit' },
+      { title:'Lightning-kaapeli', desc:'MFi-sertifioitu Lightning–USB-C -kaapeli.',        hl:null,             url:'https://kauppasi.mycashflow.fi/tuoteryhmat/lightning-kaapelit' },
+      { title:'MagSafe-laturi',    desc:'Magneettinen langaton lataus iPhone 12+.',         hl:null,             url:'https://kauppasi.mycashflow.fi/tuoteryhmat/magsafe-laturit' }
+    ]
+  },
+  microusb: {
+    label:'Micro-USB', color:'#7a5c9e',
+    chargers:[
+      { title:'Micro-USB laturi', desc:'Perinteinen Micro-USB vanhemmille laitteille.', hl:null, url:'https://kauppasi.mycashflow.fi/tuoteryhmat/microusb-laturit' },
+      { title:'Micro-USB kaapeli',desc:'Kestävä Micro-USB -kaapeli, eri pituuksina.',   hl:null, url:'https://kauppasi.mycashflow.fi/tuoteryhmat/microusb-kaapelit' }
+    ]
+  },
+  langatonlataus: {
+    label:'Langaton lataus', color:'#2d5a3d',
+    chargers:[
+      { title:'Qi-laturi',      desc:'Langaton latausalusta Qi-yhteensopiviin laitteisiin.', hl:null,              url:'https://kauppasi.mycashflow.fi/tuoteryhmat/langattomat-laturit' },
+      { title:'Qi2-pikalaturi', desc:'Uuden sukupolven langaton lataus, jopa 15W.',           hl:'Nopein langaton', url:'https://kauppasi.mycashflow.fi/tuoteryhmat/langattomat-laturit' }
+    ]
+  },
+  magsafe: {
+    label:'MagSafe', color:'#2d5a3d',
+    chargers:[
+      { title:'MagSafe-laturi', desc:'Apple MagSafe magneettinen langaton laturi.',  hl:'Apple-laitteet', url:'https://kauppasi.mycashflow.fi/tuoteryhmat/magsafe-laturit' },
+      { title:'MagSafe-teline', desc:'Magneettinen pystyteline MagSafe-latauksella.', hl:null,            url:'https://kauppasi.mycashflow.fi/tuoteryhmat/magsafe-tarvikkeet' }
+    ]
+  }
+};
+
+// ─── TILA ─────────────────────────────────────────────────────────────────────
+let phones=[], brand='Kaikki', selIdx=null, q='';
+
+// ─── LATAUS ───────────────────────────────────────────────────────────────────
+async function boot() {
+  setStatus('loading', 'Ladataan puhelinmalleja…');
+  try {
+    const res = await fetch(PROXY_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`Palvelin vastasi HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    phones = data.phones;
+
+    // Näytä milloin data on viimeksi haettu API:sta
+    const cacheInfo = data.cached_at
+      ? `Data päivitetty ${new Date(data.cached_at).toLocaleString('fi-FI', {day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}`
+      : '';
+    setStatus('success', `✓ ${phones.length} puhelinmallia ladattu.`, cacheInfo);
+    initUI();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function setStatus(type, msg, extra='') {
+  const el = document.getElementById('status');
+  el.className = 'status ' + type;
+  el.innerHTML = (type==='loading' ? '<div class="spinner"></div>' : '')
+    + `<span>${msg}</span>`
+    + (extra ? `<span class="cache-info">${extra}</span>` : '');
+}
+
+function showError(msg) {
+  const el = document.getElementById('status');
+  el.className = 'status error';
+  el.innerHTML = `
+    <strong>Virhe datan lataamisessa</strong>
+    <span style="font-size:12px;opacity:.8">${msg}</span>
+    <span style="font-size:13px">Varmista että Railway-palvelu pyörii ja PROXY_URL on oikein.</span>
+    <button class="retry-btn" onclick="boot()">Yritä uudelleen</button>`;
+}
+
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function initUI() {
+  document.getElementById('steps').style.display='flex';
+  document.getElementById('searchWrap').style.display='block';
+  brand='Kaikki'; selIdx=null; q='';
+  document.getElementById('search').value='';
+  renderBrands(); renderPhones();
+}
+
+function renderBrands() {
+  const brands = ['Kaikki', ...new Set(phones.map(p=>p.brand))];
+  document.getElementById('brandTabs').innerHTML = brands.map(b=>
+    `<button class="brand-tab${b===brand?' active':''}" onclick="pickBrand('${b}')">${b}</button>`
+  ).join('');
+}
+
+function pickBrand(b) {
+  brand=b; selIdx=null;
+  renderBrands(); renderPhones();
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('s1').className='step active';
+  document.getElementById('s2').className='step';
+}
+
+function filtered() {
+  return phones.filter(p=>
+    (brand==='Kaikki'||p.brand===brand) &&
+    (!q||p.name.toLowerCase().includes(q)||p.brand.toLowerCase().includes(q))
+  );
+}
+
+function badge(type) {
+  return CAT[type]
+    ? `<span class="phone-badge b-${type}">${CAT[type].label}</span>`
+    : `<span class="phone-badge b-unknown">Ei tiedossa</span>`;
+}
+
+function renderPhones() {
+  const list = filtered();
+  document.getElementById('phoneGrid').innerHTML = !list.length
+    ? `<div class="empty-state">Ei hakutuloksia.</div>`
+    : list.map(p=>{
+        const gi=phones.indexOf(p);
+        return `<div class="phone-card${selIdx===gi?' selected':''}" onclick="pickPhone(${gi})">
+          <div class="check-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="phone-brand">${p.brand}</div>
+          <div class="phone-name">${p.name}</div>
+          ${badge(p.chargerType)}
+        </div>`;
+      }).join('');
+}
+
+function pickPhone(gi) { selIdx=gi; renderPhones(); showResult(phones[gi]); }
+
+function showResult(phone) {
+  const ct = CAT[phone.chargerType];
+  document.getElementById('rName').textContent = phone.name;
+  document.getElementById('rType').textContent = ct
+    ? `Lataustyyppi: ${ct.label}`
+    : `Lataustyyppi: ${phone.chargerType}`;
+
+  document.getElementById('chargerGrid').innerHTML = ct
+    ? ct.chargers.map(c=>`
+        <a class="charger-card" href="${c.url}" target="_blank">
+          <div class="charger-tag" style="color:${ct.color}">${ct.label}</div>
+          <div class="charger-title">${c.title}</div>
+          <div class="charger-desc">${c.desc}</div>
+          ${c.hl?`<span class="charger-hl">${c.hl}</span>`:''}
+        </a>`).join('')
+    : `<div class="empty-state">Laturikategoriaa ei ole määritetty tälle tyypille.</div>`;
+
+  document.getElementById('result').classList.add('visible');
+  document.getElementById('s1').className='step done';
+  document.getElementById('s2').className='step active';
+  setTimeout(()=>document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+function resetPick() {
+  selIdx=null;
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('s1').className='step active';
+  document.getElementById('s2').className='step';
+  renderPhones();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('search').addEventListener('input', e=>{
+  q=e.target.value.toLowerCase();
+  if(q) brand='Kaikki';
+  renderBrands(); renderPhones();
+});
+
+boot();
+</script>
+</body>
+</html>
