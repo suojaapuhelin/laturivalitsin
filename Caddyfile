@@ -1,9 +1,4 @@
-{
-    admin off
-}
-
 :{$PORT} {
-    root * /app
-    php_server
-    file_server
+	root * /app
+	php_server
 }
